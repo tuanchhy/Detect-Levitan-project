@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dự đoán ảnh bằng ResNet50</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 480px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007acc;
+            margin-bottom: 24px;
+        }
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        #fileWrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        input[type="file"] {
+            cursor: pointer;
+        }
+        #preview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 12px auto;
+            display: none;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 320px;
+            margin: 20px auto;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+        #result {
+            margin-top: 24px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a73e8;
+            min-height: 24px;
+        }
+        #error {
+            color: red;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dự đoán ảnh bằng ResNet50</h1>
+
+    <label for="fileInput">Chọn ảnh để dự đoán:</label>
+    <div id="fileWrapper">
+        <input type="file" id="fileInput" accept="image/*"/>
+    </div>
+    <img id="preview" alt="Preview ảnh"/>
+
+    <button onclick="uploadImage()">Dự đoán</button>
+
+    <div id="result"></div>
+    <div id="error"></div>
+
+    <script>
+      const fileInput = document.getElementById('fileInput');
+      const preview   = document.getElementById('preview');
+      const resultDiv = document.getElementById('result');
+      const errorDiv  = document.getElementById('error');
+
+      // Preview ảnh ngay khi chọn
+      fileInput.addEventListener('change', () => {
+        resultDiv.textContent = '';
+        errorDiv.textContent  = '';
+        if (!fileInput.files[0]) {
+          preview.style.display = 'none';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      });
+
+      // Gửi ảnh lên backend và hiển thị kết quả
+      async function uploadImage() {
+        resultDiv.textContent = '';
+        errorDiv.textContent  = '';
+
+        if (!fileInput.files.length) {
+          errorDiv.textContent = "Vui lòng chọn ảnh!";
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        try {
+          const res = await fetch('http://127.0.0.1:8000/predict', {
+            method: 'POST',
+            body: formData
+          });
+          if (!res.ok) throw new Error(res.statusText);
+          const data = await res.json();
+
+          // Chỉ hiển thị 2 kết quả
+          if (data.predicted_label === "Levitan") {
+            resultDiv.textContent = "Kết quả: tranh Levitan";
+          } else {
+            resultDiv.textContent = "Kết quả: Không phải tranh Levitan";
+          }
+        } catch (err) {
+          errorDiv.textContent = "Lỗi: " + err.message;
+        }
+      }
+    </script>
+</body>
+</html>
